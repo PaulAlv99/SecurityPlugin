@@ -102,20 +102,24 @@ const store = {
   },
 
   async getAllVisible() {
-    // Return an object mapping hostname → { favicon, thirdParties, firstParty }
-    const websites = await this.db.websites
-      .filter(w => w.isVisible || w.firstParty)
-      .toArray();
+  // Return an object mapping hostname → detailed info
+  const websites = await this.db.websites
+    .filter(w => w.isVisible || w.firstParty)
+    .toArray();
 
-    const out = {};
-    for (const w of websites) {
-      out[w.hostname] = {
-        favicon: w.faviconUrl || '',
-        thirdParties: w.firstPartyHostnames || [],
-        firstParty: !!w.firstParty
-      };
-    }
-    return out;
+  const out = {};
+  for (const w of websites) {
+    out[w.hostname] = {
+      hostname: w.hostname,
+      favicon: w.faviconUrl || '',
+      thirdParties: w.firstPartyHostnames || [],
+      firstParty: !!w.firstParty,
+      isVisible: w.isVisible,
+      firstRequestTime: w.firstRequestTime || null,
+      lastRequestTime: w.lastRequestTime || null
+    };
+  }
+  return out;
   },
 
   messageHandler(msg) {

@@ -157,23 +157,70 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 document.getElementById("download").addEventListener("click", async () => {
-    try {
-        const data = await storeChild.getAllVisible();
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
+  try {
+    const rawData = await storeChild.getAllVisible();
 
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "tracked_websites.json";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    const grouped = {};
 
-        URL.revokeObjectURL(url);
-    } catch (err) {
-        console.error("Error downloading tracker data:", err);
-        alert("Failed to download tracker data.");
-    }
+    Object.entries(rawData).forEach(([hostname, data]) => {
+      const isUUID = /^[0-9a-fA-F\-]{36}$/.test(hostname);
+      const displayName = isUUID ? `Unknown Host (${hostname})` : hostname;
+
+      const trackerData = {
+        hostname: hostname,
+        favicon: data.favicon || "",
+        isVisible: data.isVisible || 1,
+        firstRequestTime: data.firstRequestTime || null,
+        lastRequestTime: data.lastRequestTime || null
+      };
+
+      if (data.firstParty) {
+        // This is a top-level site (parent)
+        grouped[displayName] = {
+          hostname: hostname,
+          favicon: data.favicon || "",
+          firstRequestTime: data.firstRequestTime || null,
+          lastRequestTime: data.lastRequestTime || null,
+          isVisible: data.isVisible || 1,
+          thirdParties: []
+        };
+      }
+      else {
+        // This is a third-party — add it to each parent it's associated with
+        (data.thirdParties || []).forEach(parent => {
+          const parentKey = /^[0-9a-fA-F\-]{36}$/.test(parent)
+            ? `Unknown Host (${parent})`
+            : parent;
+
+          if (!grouped[parentKey]) {
+            grouped[parentKey] = {
+              hostname: parent,
+              favicon: "",
+              isVisible: 1,
+              thirdParties: []
+            };
+          }
+
+          grouped[parentKey].thirdParties.push(trackerData);
+        });
+      }
+    });
+
+    const json = JSON.stringify(grouped, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "grouped_websites.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Error exporting grouped tracker data:", err);
+    alert("Failed to export grouped data.");
+  }
 });
 
