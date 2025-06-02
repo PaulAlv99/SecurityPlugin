@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "Website Tracker",
+  "version": "1.0",
+  "description": "Track first- and third-party domains",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "tabs",
+    "storage",
+    "cookies",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": [
+      "ext-libs/dexie.js",
+      "js/store.js",
+      "js/capture.js",
+      "js/background.js"
+    ],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_icon": {
+      "48": "icons/icon.png"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+/* Overall container */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 15px;
+  width: 350px;
+  margin: 0;
+}
+
+/* Heading (if you have one) */
+h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+  color: #222;
+}
+
+/* Remove default bullets and spacing on the top‐level list */
+#trackerList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Each first‐party origin */
+.origin {
+  font-weight: bold;
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+
+/* Hover effect for origin items */
+.origin:hover {
+  background-color: #eef4ff;
+  border-color: #aac;
+}
+
+/* The nested <ul> for third‐party trackers */
+.targets {
+  list-style: disc;
+  margin: 5px 0 10px 20px; /* top, right, bottom, left */
+  padding: 0;
+  display: none; /* start hidden */
+}
+
+/* Each individual tracker line */
+.targets li {
+  padding: 4px 6px;
+  border-left: 3px solid #ccc;
+  margin-bottom: 4px;
+  transition: background 0.2s;
+}
+
+/* Hover effect for tracker items */
+.targets li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Placeholder when no trackers exist */
+.empty {
+  font-style: italic;
+  color: #777;
+  padding-left: 6px;
+}
+
+/* Style for the “Clear All” button */
+button#clearBtn {
+  margin-top: 15px;
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.95em;
+}
+
+/* Hover effect for button */
+button#clearBtn:hover {
+  background-color: #0056b3;
+}
