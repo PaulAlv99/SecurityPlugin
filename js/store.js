@@ -51,31 +51,33 @@ const store = {
   },
 
   async setThirdParty(origin, target, data) {
-    if (!origin || !target) return;
+  if (!origin || !target) return;
 
-    // Get or create the “first‐party” record
-    const firstParty = (await this.getWebsite(origin)) || { hostname: origin };
-    // Get or create the “third‐party” record
-    const thirdParty = (await this.getWebsite(target)) || { hostname: target };
+  // Get or create the first-party record
+  const firstParty = (await this.getWebsite(origin)) || { hostname: origin };
 
-    // For the third‐party, keep a list of all first‐party hostnames that have loaded it
-    thirdParty.firstPartyHostnames ??= [];
-    if (!thirdParty.firstPartyHostnames.includes(origin)) {
-      thirdParty.firstPartyHostnames.push(origin);
-    }
+  // Get or create the third-party record
+  const thirdParty = (await this.getWebsite(target)) || { hostname: target };
 
-    thirdParty.isVisible = true;
-    thirdParty.lastRequestTime = data.requestTime;
-    thirdParty.firstRequestTime ??= data.requestTime;
+  thirdParty.firstPartyHostnames ??= [];
+  if (!thirdParty.firstPartyHostnames.includes(origin)) {
+    thirdParty.firstPartyHostnames.push(origin);
+  }
 
-    // Ensure the first‐party record also has isVisible = true
-    firstParty.isVisible = true;
-    firstParty.lastRequestTime = data.requestTime;
-    firstParty.firstRequestTime ??= data.requestTime;
+  thirdParty.isVisible = true;
+  thirdParty.lastRequestTime = data.requestTime;
+  thirdParty.firstRequestTime ??= data.requestTime;
 
-    // Write both sides
-    await this._write(firstParty);
-    await this._write(thirdParty);
+  // 🔽 Store additional risk info
+  if (data.isAd !== undefined) thirdParty.isAd = data.isAd;
+  if (data.tldRisk !== undefined) thirdParty.tldRisk = data.tldRisk;
+
+  firstParty.isVisible = true;
+  firstParty.lastRequestTime = data.requestTime;
+  firstParty.firstRequestTime ??= data.requestTime;
+
+  await this._write(firstParty);
+  await this._write(thirdParty);
   },
 
   async getWebsite(hostname) {
@@ -116,7 +118,9 @@ const store = {
       firstParty: !!w.firstParty,
       isVisible: w.isVisible,
       firstRequestTime: w.firstRequestTime || null,
-      lastRequestTime: w.lastRequestTime || null
+      lastRequestTime: w.lastRequestTime || null,
+      isAd: w.isAd || false,
+      tldRisk: w.tldRisk || 0
     };
   }
   return out;

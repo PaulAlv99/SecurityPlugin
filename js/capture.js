@@ -1,8 +1,19 @@
-/* global store, browser */
+let untrustedTlds = {};
+
+(async function loadTldRiskData() {
+  try {
+    const response = await fetch(browser.runtime.getURL("untrusted_tlds.json"));
+    untrustedTlds = await response.json();
+    console.log("[TLD Risk] Loaded", Object.keys(untrustedTlds).length, "entries");
+  } catch (err) {
+    console.warn("Failed to load untrusted_tlds.json:", err);
+  }
+})();
+
 const capture = {
   queue: [],
   processingQueue: false,
-
+  
   init() {
     this.addListeners();
 
@@ -34,36 +45,42 @@ const capture = {
   },
 
   async sendThirdParty(response) {
-    try {
-      // Determine the “origin” of the request:
-      const originUrl = response.originUrl || response.documentUrl || '';
-      const origin = new URL(originUrl).hostname;
-      // Determine the “target” (the URL being fetched)
-      const target = new URL(response.url).hostname;
+  try {
+    const originUrl = response.originUrl || response.documentUrl || '';
+    const origin = new URL(originUrl).hostname;
+    const target = new URL(response.url).hostname;
 
-      // Figure out what the first-party hostname is (if this is in a tab)
-      const tabId = response.tabId;
-      const tab = tabId >= 0 ? await this.getTab(tabId) : null;
-      const firstParty = tab ? new URL(tab.url).hostname : origin;
+    const tabId = response.tabId;
+    const tab = tabId >= 0 ? await this.getTab(tabId) : null;
+    const firstParty = tab ? new URL(tab.url).hostname : origin;
 
-      // If it’s truly a third-party (different hostname) & meets our criteria
-      if (
-        firstParty &&
-        target &&
-        target !== firstParty &&
-        await this.shouldStore(response)
-      ) {
-        await store.setThirdParty(firstParty, target, {
-          origin,
-          target,
-          requestTime: response.timeStamp,
-          firstParty: false
-        });
+    if (
+      firstParty &&
+      target &&
+      target !== firstParty &&
+      await this.shouldStore(response)
+    ) {
+      // 🔍 Check if it's likely an ad/tracker
+      const adKeywords = ["ads", "adservice", "track", "tracking", "pixel", "beacon", "tag", "quant", "scorecard", "analytics", "ml314", "s-onetag"];
+      const isAdDomain = adKeywords.some(keyword => target.toLowerCase().includes(keyword));
+
+      if (isAdDomain) {
+        this.notifyAdTracking(target);
+        return; // Skip storing in DB if you don't want to track ad domains
       }
-    } catch {
-      // any parsing errors or no tab → ignore
+
+      // ✅ Store non-ad trackers
+      await store.setThirdParty(firstParty, target, {
+        origin,
+        target,
+        requestTime: response.timeStamp,
+        firstParty: false
+      });
     }
-  },
+  } catch {
+    // any parsing errors or no tab → ignore
+  }
+},
 
   async sendFirstParty(tabId, changeInfo, tab) {
     // Only when the tab is “complete” do we write a first-party record
@@ -99,7 +116,16 @@ const capture = {
     } catch {
       return null;
     }
+  },
+  notifyAdTracking(domain) {
+  browser.notifications.create({
+    type: "basic",
+    iconUrl: browser.runtime.getURL("icons/icon-48.png"),
+    title: "Potential Ad Tracker Detected",
+    message: `This website is likely tracking you via ${domain}.`
+  });
   }
+
 };
 
 capture.init();

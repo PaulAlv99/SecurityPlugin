@@ -116,10 +116,23 @@ async function render() {
 
     const childrenList = normalizedData[parent].children;
     if (childrenList.length > 0) {
-      childrenList.forEach((trackerHost) => {
-        const trackerLi = document.createElement("li");
-        trackerLi.textContent = trackerHost;
-        nestedUl.appendChild(trackerLi);
+      childrenList.forEach((trackerData) => {
+      const trackerHost = trackerData.hostname || trackerData; // fallback if only hostname is given
+      const trackerLi = document.createElement("li");
+      trackerLi.textContent = trackerHost;
+
+      // Use keyword matching or metadata if available
+      const lowerHost = trackerHost.toLowerCase();
+      //TODO use what was given by capture to db
+      const adKeywords = ["ads", "track", "doubleclick", "googlesyndication", "pixel", "beacon", "analytics", "adtrafficquality"];
+      const isAd = adKeywords.some(k => lowerHost.includes(k));
+
+      if (isAd) {
+      trackerLi.style.backgroundColor = '#FFD700'; // Yellow for ad/tracker
+      hasAd = true;
+      }
+
+      nestedUl.appendChild(trackerLi);
       });
     } else {
       // If there are no trackers for this parent, show a placeholder
@@ -160,67 +173,39 @@ document.getElementById("download").addEventListener("click", async () => {
   try {
     const rawData = await storeChild.getAllVisible();
 
-    const grouped = {};
+    const detailed = {};
 
-    Object.entries(rawData).forEach(([hostname, data]) => {
+    Object.keys(rawData).forEach((hostname) => {
+      const data = rawData[hostname];
       const isUUID = /^[0-9a-fA-F\-]{36}$/.test(hostname);
       const displayName = isUUID ? `Unknown Host (${hostname})` : hostname;
 
-      const trackerData = {
+      detailed[displayName] = {
         hostname: hostname,
-        favicon: data.favicon || "",
-        isVisible: data.isVisible || 1,
+        firstParty: !!data.firstParty,
+        thirdParties: data.thirdParties || [],
         firstRequestTime: data.firstRequestTime || null,
-        lastRequestTime: data.lastRequestTime || null
+        lastRequestTime: data.lastRequestTime || null,
+        isVisible: data.isVisible || 1,
+        favicon: data.favicon || ""
       };
-
-      if (data.firstParty) {
-        // This is a top-level site (parent)
-        grouped[displayName] = {
-          hostname: hostname,
-          favicon: data.favicon || "",
-          firstRequestTime: data.firstRequestTime || null,
-          lastRequestTime: data.lastRequestTime || null,
-          isVisible: data.isVisible || 1,
-          thirdParties: []
-        };
-      }
-      else {
-        // This is a third-party — add it to each parent it's associated with
-        (data.thirdParties || []).forEach(parent => {
-          const parentKey = /^[0-9a-fA-F\-]{36}$/.test(parent)
-            ? `Unknown Host (${parent})`
-            : parent;
-
-          if (!grouped[parentKey]) {
-            grouped[parentKey] = {
-              hostname: parent,
-              favicon: "",
-              isVisible: 1,
-              thirdParties: []
-            };
-          }
-
-          grouped[parentKey].thirdParties.push(trackerData);
-        });
-      }
     });
 
-    const json = JSON.stringify(grouped, null, 2);
+    const json = JSON.stringify(detailed, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "grouped_websites.json";
+    a.download = "tracked_websites_detailed.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
 
     URL.revokeObjectURL(url);
   } catch (err) {
-    console.error("Error exporting grouped tracker data:", err);
-    alert("Failed to export grouped data.");
+    console.error("Error exporting data:", err);
+    alert("Failed to export tracker data.");
   }
 });
 

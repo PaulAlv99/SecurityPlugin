@@ -13,6 +13,7 @@
     "webRequestBlocking",
     "tabs",
     "storage",
+    "notifications",
     "cookies",
     "<all_urls>"
   ],
