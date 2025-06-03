@@ -70,6 +70,9 @@ const capture = {
     if (changeInfo.status !== 'complete') return;
     try {
       const url = tab.url;
+      if (url.startsWith("moz-extension://")) {
+        return; // Skip internal extension resources
+      }
       const hostname = new URL(url).hostname;
       const faviconUrl = tab.favIconUrl || '';
       await store.setFirstParty(hostname, {
