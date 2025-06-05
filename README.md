@@ -1,0 +1,1 @@
+Download the zip. Unzip it and then in the FIREFOX about:debugging#/runtime/this-firefox Load temporary extension. You just need to upload the manifest and then if u update the code just click on reload
