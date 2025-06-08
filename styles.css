@@ -1,87 +1,205 @@
-/* Overall container */
+/* ===================== */
+/* 🎨 THEME VARIABLES    */
+/* ===================== */
+:root {
+  --bg-color: #f2f4f7;
+  --text-color: #333;
+  --card-color: #ffffff;
+  --border-color: #ddd;
+  --hover-color: #eef1f7;
+  --accent-color: #007bff;
+  --accent-hover: #0056b3;
+  --accent-pressed: #004494;
+  --tracker-yellow: #fff6a0;
+  --tracker-yellow-text: #000;
+  --tracker-pink: #f8bbd0;
+  --tracker-pink-text: #000;
+  --highlight-color: #777;
+}
+
+.dark-mode {
+  --bg-color: #1e1e1e;
+  --text-color: #eaeaea;
+  --card-color: #2a2a2a;
+  --border-color: #444;
+  --hover-color: #2e2e2e;
+  --accent-color: #3391ff;
+  --accent-hover: #226bba;
+  --accent-pressed: #1a4f91;
+  --tracker-yellow: #fff176;
+  --tracker-yellow-text: #111;
+  --tracker-pink: #f48fb1;
+  --tracker-pink-text: #111;
+  --highlight-color: #ccc;
+}
+
+/* 🌗 Theme Toggle Button */
+#themeToggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 6px 14px;
+  background-color: var(--card-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.9em;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+#themeToggle:hover {
+  background-color: var(--hover-color);
+  border-color: var(--accent-color);
+}
+
+/* 🟡 Tracker Highlight (yellow) */
+.tracker-yellow {
+  background-color: var(--tracker-yellow) !important;
+  color: var(--tracker-yellow-text) !important;
+  border-left: 3px solid #e6c200;
+}
+
+/* 🌸 Tracker Highlight (pink) */
+.tracker-pink {
+  background-color: var(--tracker-pink) !important;
+  color: var(--tracker-pink-text) !important;
+  border-left: 3px solid #d16a8c;
+}
+
+/* ===================== */
+/* 🔤 BASE LAYOUT        */
+/* ===================== */
 body {
   font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
-  color: #333;
-  padding: 15px;
-  width: 350px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   margin: 0;
+  padding: 2%;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-/* Heading (if you have one) */
 h2 {
   margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1.2em;
-  color: #222;
+  margin-bottom: 1%;
+  font-size: 1.6em;
+  color: var(--text-color);
+  text-align: center;
 }
 
-/* Remove default bullets and spacing on the top‐level list */
-#trackerList {
+ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Each first‐party origin */
+li {
+  width: 100%;
+  margin-bottom: 1%;
+  background-color: var(--card-color);
+  border-radius: 6px;
+  padding: 10px;
+  list-style: none;
+  box-sizing: border-box;
+  transition: background-color 0.3s;
+}
+
+/* ===================== */
+/* 🌐 FIRST-PARTY SITES  */
+/* ===================== */
 .origin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--card-color);
+  padding: 1% 2%;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   font-weight: bold;
-  padding: 8px 12px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-  transition: background 0.2s, border-color 0.2s;
   cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-/* Hover effect for origin items */
 .origin:hover {
-  background-color: #eef4ff;
-  border-color: #aac;
+  background-color: var(--hover-color);
+  border-color: var(--highlight-color);
 }
 
-/* The nested <ul> for third‐party trackers */
+/* ===================== */
+/* 🛰️ TRACKERS LIST      */
+/* ===================== */
 .targets {
   list-style: disc;
-  margin: 5px 0 10px 20px; /* top, right, bottom, left */
+  margin: 1% 0 2% 5%;
   padding: 0;
-  display: none; /* start hidden */
+  display: none;
+  width: 95%;
+  box-sizing: border-box;
 }
 
-/* Each individual tracker line */
 .targets li {
-  padding: 4px 6px;
-  border-left: 3px solid #ccc;
-  margin-bottom: 4px;
-  transition: background 0.2s;
+  background-color: var(--card-color);
+  padding: 0.8% 2%;
+  margin-bottom: 0.5%;
+  border-radius: 6px;
+  color: var(--text-color);
+  font-size: 0.9em;
+  border-left: 0.3em solid var(--border-color);
+  transition: background-color 0.2s;
 }
 
-/* Hover effect for tracker items */
 .targets li:hover {
-  background-color: #f0f0f0;
+  background-color: var(--hover-color);
 }
 
-/* Placeholder when no trackers exist */
+/* Highlighted by category */
+.tracker-yellow {
+  background-color: var(--tracker-yellow) !important;
+}
+
+.tracker-pink {
+  background-color: var(--tracker-pink) !important;
+}
+
+/* Empty placeholder */
 .empty {
   font-style: italic;
-  color: #777;
-  padding-left: 6px;
+  color: var(--highlight-color);
+  padding-left: 2%;
 }
 
-/* Style for the “Clear All” button */
+/* ===================== */
+/* 🧹 CLEAR BUTTON       */
+/* ===================== */
+button#downloadBtn,
 button#clearBtn {
-  margin-top: 15px;
-  padding: 8px 12px;
-  background-color: #007bff;
+  display: block;
+  width: 100%;
+  padding: 1% 0;
+  margin-top: 2%;
+  background-color: var(--accent-color);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 1em;
+  font-weight: bold;
   cursor: pointer;
-  transition: background 0.2s;
-  font-size: 0.95em;
+  transition: background-color 0.2s;
+  box-sizing: border-box;
 }
 
-/* Hover effect for button */
+button#downloadBtn:hover,
 button#clearBtn:hover {
-  background-color: #0056b3;
+  background-color: var(--accent-hover);
+}
+
+button#downloadBtn:active,
+button#clearBtn:active {
+  background-color: var(--accent-pressed);
 }

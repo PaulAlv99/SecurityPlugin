@@ -1,134 +1,24 @@
+
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
     <title>Tracker Map</title>
-    <style>
-      /* Base container fills the viewport width */
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f2f4f7;
-        color: #333;
-        margin: 0;
-        padding: 2%;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      /* Heading styling */
-      h2 {
-        margin-top: 0;
-        margin-bottom: 1%;
-        font-size: 1.6em;
-        color: #222;
-        text-align: center;
-      }
-
-      /* Remove default list styling and ensure full width */
-      ul {
-        list-style: none;
-        padding-left: 0;
-        margin: 0;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      li {
-        margin-bottom: 1%;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      /* First‐party origin items */
-      .origin {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background-color: #ffffff;
-        padding: 1% 2%;
-        border: 0.1em solid #ddd;
-        border-radius: 1%;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background-color 0.2s, border-color 0.2s;
-      }
-
-      .origin:hover {
-        background-color: #eef1f7;
-        border-color: #bbb;
-      }
-
-      /* Nested list of third‐party trackers */
-      .targets {
-        list-style: disc;
-        margin: 1% 0 2% 5%;
-        padding: 0;
-        display: none; /* hidden until clicked */
-        width: 95%;
-        box-sizing: border-box;
-      }
-
-      .targets li {
-        background-color: #fff;
-        padding: 0.8% 2%;
-        margin-bottom: 0.5%;
-        border-radius: 0.8%;
-        color: #555;
-        font-size: 0.9em;
-        border-left: 0.3em solid #ccc;
-        transition: background-color 0.2s;
-      }
-
-      .targets li:hover {
-        background-color: #f0f0f0;
-      }
-
-      /* Placeholder when no trackers exist */
-      .empty {
-        font-style: italic;
-        color: #777;
-        padding-left: 2%;
-      }
-
-      /* Clear All button styling */
-      button {
-        display: block;
-        width: 100%;
-        padding: 1% 0;
-        margin-top: 2%;
-        background-color: #007bff;
-        color: #fff;
-        border: none;
-        border-radius: 1%;
-        font-size: 1em;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        box-sizing: border-box;
-      }
-
-      button {
-        background-color: #0056b3;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <h2>Tracked Websites</h2>
+    <button id="themeToggle">🌙 Dark Mode</button>
     <div style="font-size: 0.9em; margin-top: 10px; margin-bottom: 10px;">
-    <strong>Legend:</strong>
     <span style="background-color: #FFD700; padding: 2px 6px; margin: 0 6px;">Tracker</span>
-    <span style="background-color: #FF6347; padding: 2px 6px;">Low Risk</span>
-    <span style="background-color: #DC143C; padding: 2px 6px;">Medium</span>
-    <span style="background-color: #B22222; padding: 2px 6px;">High</span>
-    <span style="background-color: #8B0000; padding: 2px 6px;">Very High</span>
+    <span style="background-color: #f7abdf; padding: 2px 6px; margin: 0 6px;">Advertising</span>
     </div>
     <ul id="trackerList"></ul>
     <button id="clearBtn">Clear All</button>
-    <button id="download">Download Data</button>
+    <button id="downloadBtn">Download Data</button>
     <!-- 1) storeChild must be loaded before ui.js -->
     <script src="js/storeChild.js"></script>
     <!-- 2) ui.js depends on storeChild.getAllVisible() & onUpdate() -->
     <script src="js/ui.js"></script>
-    <script src="ui.js"></script>
   </body>
 </html>

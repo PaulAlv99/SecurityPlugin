@@ -1,71 +1,72 @@
-/* global storeChild, document */
+// ui.js - Shows tracked websites and their trackers
 
-/**
- * (Optional) A small helper to collapse “a1.nytimes.com” or “static01.nytimes.com”
- * down to “nytimes.com” if you want all subdomains to show up under a single root.
- *
- * If you do NOT need subdomain-normalization, you can skip calling this and just
- * use each hostname verbatim. If you do want to collapse all “.nytimes.com” into
- * a single entry, keep this function.
- */
+let untrustedTLDs = {};
+
+// Load the list of risky TLDs from a file
+async function loadUntrustedTLDs() {
+  const response = await fetch('untrusted_tlds.json');
+  untrustedTLDs = await response.json();
+}
+
+// Get the risk level for a site's TLD
+function getTLDRisk(hostname) {
+  const match = hostname.match(/(\.[a-zA-Z0-9]+)$/);
+  if (match) {
+    const tld = match[1].toLowerCase();
+    return untrustedTLDs[tld] || 0;
+  }
+  return 0;
+}
+
+let blocklistDescriptions = {};
+
+// Load tracker descriptions from a file
+async function loadBlocklistDescriptions() {
+  const response = await fetch('notrack_blocklist.json');
+  const blocklist = await response.json();
+  blocklist.forEach(entry => {
+    if (entry.domain) {
+      blocklistDescriptions[entry.domain.toLowerCase()] = entry.description;
+    }
+  });
+}
+
+// Get the main domain (root) from a hostname
 function toRootDomain(hostname) {
   const parts = hostname.split('.');
   if (parts.length <= 2) {
-    // e.g. "canva.com" or "github.com" → leave as is
     return hostname;
   }
   const tld = parts[parts.length - 1].toLowerCase();
-  // If it ends in .com / .net / .org, grab the last two segments
   if (['com', 'net', 'org'].includes(tld)) {
     return parts.slice(-2).join('.');
   }
-  // Otherwise, do not try to be fancy—just return the full hostname
   return hostname;
 }
 
 async function render() {
-  // 1️⃣ Fetch everything from the background
+  // Get all data from storage
   const rawData = await storeChild.getAllVisible();
-  // rawData is an object mapping each hostname → { favicon, thirdParties: [parents...], firstParty: bool }
-
-  // 2️⃣ Build a “parent → Set of children” map
-  //
-  // We want something like:
-  //    {
-  //      "nytimes.com":  Set( "pagead2.googlesyndication.com", "c.go-mpulse.net", … ),
-  //      "canva.com":    Set(), // if there are no trackers
-  //      ...
-  //    }
-  //
-  // Start with an empty object. We'll populate it in two passes.
+  // Map of parent sites to their trackers
   const parentMap = {};
 
-  //  2a) First pass: ensure that every hostname marked firstParty ends up
-  //      as a key in parentMap (with an empty Set so far).
+  // Make sure each main site is in the map
   Object.keys(rawData).forEach((host) => {
-    // Optionally normalize subdomain → root:
     const parentKey = toRootDomain(host);
-
     if (rawData[host].firstParty) {
-      // If it’s a first-party host (e.g. “www.nytimes.com”), make sure we have a Set
       if (!parentMap[parentKey]) {
         parentMap[parentKey] = new Set();
       }
     }
   });
 
-  //  2b) Second pass: for every hostname that is _not_ firstParty (i.e. a third-party),
-  //      look at rawData[host].thirdParties, which is an ARRAY OF PARENTS that loaded it.
-  //      For each parent in that array, add this host → that parent’s Set.
+  // Add third-party trackers to their parent sites
   Object.keys(rawData).forEach((host) => {
     if (!rawData[host].firstParty) {
-      // This is a third-party hostname (e.g. “pagead2.googlesyndication.com”)
       const trackerKey = toRootDomain(host);
       const parents = rawData[host].thirdParties || [];
       parents.forEach((parentHost) => {
         const parentKey = toRootDomain(parentHost);
-        // If we never saw this parent as a firstParty (maybe it was recorded as third-party itself),
-        // create an entry so it still shows up in the UI—otherwise we’d never see “parent” at all.
         if (!parentMap[parentKey]) {
           parentMap[parentKey] = new Set();
         }
@@ -74,75 +75,106 @@ async function render() {
     }
   });
 
-  // 3️⃣ Convert each Set back to an Array for easier rendering
+  // Convert Sets to Arrays for easier use
   const normalizedData = {};
   Object.keys(parentMap).forEach((parent) => {
     normalizedData[parent] = {
-      children: Array.from(parentMap[parent]), // third-party list
+      children: Array.from(parentMap[parent]),
     };
   });
-  //
-  // normalizedData now looks like:
-  // {
-  //   "nytimes.com": { children: [ "pagead2.googlesyndication.com", "c.go-mpulse.net", … ] },
-  //   "canva.com":   { children: [] },
-  //   "example.org": { children: [ "tracker.example.net" ] },
-  //   ...
-  // }
 
-  // 4️⃣ Build the <ul> in the DOM so that each “parent” appears as a top-level <li>,
-  //     and all of its “children” (trackers) are nested underneath.
+  // Build the list in the UI
   const list = document.getElementById("trackerList");
   list.innerHTML = "";
 
   Object.keys(normalizedData).forEach((parent) => {
-    // Create the top-level <li> for this first-party
+    // Main site line
     const li = document.createElement("li");
     li.style.marginBottom = "8px";
 
-    // 4a) The clickable “origin” line (e.g. "nytimes.com")
     const originDiv = document.createElement("div");
-    originDiv.textContent = parent;
     originDiv.className = "origin";
     originDiv.style.fontWeight = "bold";
     originDiv.style.cursor = "pointer";
+    originDiv.style.display = "flex";
+    originDiv.style.justifyContent = "space-between";
+    originDiv.style.alignItems = "center";
 
-    // 4b) The nested <ul> of all its third-party trackers
+    const tldRisk = getTLDRisk(parent);
+
+    const parentSpan = document.createElement("span");
+    parentSpan.textContent = parent;
+
+    const tldSpan = document.createElement("span");
+    tldSpan.textContent = `TLDs Unsecure Level ${tldRisk}/10`;
+    tldSpan.style.marginLeft = "auto";
+    tldSpan.style.fontWeight = "normal";
+    tldSpan.style.fontSize = "0.95em";
+    tldSpan.style.color = "#888";
+
+    originDiv.appendChild(parentSpan);
+    originDiv.appendChild(tldSpan);
+
+    // List of trackers for this site
     const nestedUl = document.createElement("ul");
     nestedUl.className = "targets";
     nestedUl.style.listStyleType = "disc";
     nestedUl.style.marginLeft = "20px";
-    nestedUl.style.display = "none"; // hide until clicked
+    nestedUl.style.display = "none"; // hidden by default
 
     const childrenList = normalizedData[parent].children;
     if (childrenList.length > 0) {
       childrenList.forEach((trackerData) => {
-      const trackerHost = trackerData.hostname || trackerData; // fallback if only hostname is given
-      const trackerLi = document.createElement("li");
-      trackerLi.textContent = trackerHost;
+        const trackerHost = trackerData.hostname || trackerData;
+        const trackerDomain = toRootDomain(trackerHost).toLowerCase();
 
-      // Use keyword matching or metadata if available
-      const lowerHost = trackerHost.toLowerCase();
-      //TODO use what was given by capture to db
-      const adKeywords = ["ads", "track", "doubleclick", "googlesyndication", "pixel", "beacon", "analytics", "adtrafficquality"];
-      const isAd = adKeywords.some(k => lowerHost.includes(k));
+        // Show tracker name and description
+        const trackerDiv = document.createElement("div");
+        trackerDiv.style.display = "flex";
+        trackerDiv.style.justifyContent = "space-between";
+        trackerDiv.style.alignItems = "center";
 
-      if (isAd) {
-      trackerLi.style.backgroundColor = '#FFD700'; // Yellow for ad/tracker
-      hasAd = true;
-      }
+        const trackerSpan = document.createElement("span");
+        trackerSpan.textContent = trackerHost;
 
-      nestedUl.appendChild(trackerLi);
+        const desc = blocklistDescriptions[trackerDomain];
+        let descSpan = null;
+        if (desc) {
+          descSpan = document.createElement("span");
+          descSpan.textContent = desc;
+          descSpan.style.fontWeight = "normal";
+          descSpan.style.fontSize = "0.95em";
+          descSpan.style.color = "#888";
+          descSpan.style.marginLeft = "auto";
+        }
+
+        trackerDiv.appendChild(trackerSpan);
+        if (descSpan) trackerDiv.appendChild(descSpan);
+
+        const trackerLi = document.createElement("li");
+        trackerLi.appendChild(trackerDiv);
+
+        // Highlight trackers based on their description
+        if (desc) {
+          if (/tracker/i.test(desc)) {
+            trackerLi.classList.add("tracker-yellow");
+          } else if (/advertising/i.test(desc)) {
+            trackerLi.classList.add("tracker-pink");
+          }
+        }
+
+
+        nestedUl.appendChild(trackerLi);
       });
     } else {
-      // If there are no trackers for this parent, show a placeholder
+      // No trackers for this site
       const emptyLi = document.createElement("li");
       emptyLi.textContent = "(no third-party trackers)";
       emptyLi.style.fontStyle = "italic";
       nestedUl.appendChild(emptyLi);
     }
 
-    // 4c) When you click on the “origin” line, toggle the nested list
+    // Click to show/hide trackers
     originDiv.addEventListener("click", () => {
       nestedUl.style.display =
         nestedUl.style.display === "none" ? "block" : "none";
@@ -154,58 +186,106 @@ async function render() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Initial render
+document.addEventListener("DOMContentLoaded", async () => {
+  // Load data files
+  await loadUntrustedTLDs();
+  await loadBlocklistDescriptions();
+
+  // Show the list
   render();
 
-  // Re-render whenever the background broadcasts a change
+  // Update the list when data changes
   storeChild.onUpdate(() => {
     render();
   });
 
-  // “Clear All” button: clear the entire DB in the background, then re-render
+  // Clear all data and refresh
   document.getElementById("clearBtn").addEventListener("click", async () => {
     await storeChild.reset();
     render();
   });
 });
-document.getElementById("download").addEventListener("click", async () => {
+
+// Download all data as a JSON file
+document.getElementById("downloadBtn").addEventListener("click", async () => {
   try {
     const rawData = await storeChild.getAllVisible();
 
-    const detailed = {};
+    const grouped = {};
 
-    Object.keys(rawData).forEach((hostname) => {
-      const data = rawData[hostname];
+    Object.entries(rawData).forEach(([hostname, data]) => {
       const isUUID = /^[0-9a-fA-F\-]{36}$/.test(hostname);
       const displayName = isUUID ? `Unknown Host (${hostname})` : hostname;
 
-      detailed[displayName] = {
+      const trackerData = {
         hostname: hostname,
-        firstParty: !!data.firstParty,
-        thirdParties: data.thirdParties || [],
-        firstRequestTime: data.firstRequestTime || null,
-        lastRequestTime: data.lastRequestTime || null,
+        favicon: data.favicon || "",
         isVisible: data.isVisible || 1,
-        favicon: data.favicon || ""
+        firstRequestTime: data.firstRequestTime || null,
+        lastRequestTime: data.lastRequestTime || null
       };
+
+      if (data.firstParty) {
+        grouped[displayName] = {
+          hostname: hostname,
+          favicon: data.favicon || "",
+          firstRequestTime: data.firstRequestTime || null,
+          lastRequestTime: data.lastRequestTime || null,
+          isVisible: data.isVisible || 1,
+          thirdParties: []
+        };
+      }
+      else {
+        (data.thirdParties || []).forEach(parent => {
+          const parentKey = /^[0-9a-fA-F\-]{36}$/.test(parent)
+            ? `Unknown Host (${parent})`
+            : parent;
+
+          if (!grouped[parentKey]) {
+            grouped[parentKey] = {
+              hostname: parent,
+              favicon: "",
+              isVisible: 1,
+              thirdParties: []
+            };
+          }
+
+          grouped[parentKey].thirdParties.push(trackerData);
+        });
+      }
     });
 
-    const json = JSON.stringify(detailed, null, 2);
+    const json = JSON.stringify(grouped, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "tracked_websites_detailed.json";
+    a.download = "grouped_websites.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
 
     URL.revokeObjectURL(url);
   } catch (err) {
-    console.error("Error exporting data:", err);
-    alert("Failed to export tracker data.");
+    console.error("Error exporting grouped tracker data:", err);
+    alert("Failed to export grouped data.");
   }
 });
 
+// Load theme from localStorage
+function applyTheme() {
+  const isDark = localStorage.getItem("theme") === "dark";
+  document.body.classList.toggle("dark-mode", isDark);
+
+  const toggleButton = document.getElementById("themeToggle");
+  toggleButton.textContent = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
+}
+
+document.getElementById("themeToggle").addEventListener("click", () => {
+  const isDark = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("theme", isDark ? "dark" : "light");
+  applyTheme();
+});
+
+applyTheme();
